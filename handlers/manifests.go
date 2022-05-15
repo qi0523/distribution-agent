@@ -8,7 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func ResovledManifest(w http.ResponseWriter, r *http.Request) {
+func GetManifest(w http.ResponseWriter, r *http.Request) {
 	logrus.Info("ctx: ", r.Context())
 	vars := mux.Vars(r)
 	name := vars["name"]
@@ -17,8 +17,4 @@ func ResovledManifest(w http.ResponseWriter, r *http.Request) {
 	if err != nil { //tag
 
 	}
-}
-
-func TransferManifest(w http.ResponseWriter, r *http.Request) {
-	logrus.Info("ctx: ", r.Context())
 }

@@ -19,8 +19,8 @@ func Router() *mux.Router {
 
 	router.StrictSlash(true)
 
-	router.HandleFunc(RouteNameManifest, handlers.ResovledManifest).Methods(http.MethodHead)
-	router.HandleFunc(RouteNameManifest, handlers.TransferManifest).Methods(http.MethodGet)
+	router.HandleFunc(RouteNameManifest, handlers.GetManifest).Methods(http.MethodHead)
+	router.HandleFunc(RouteNameManifest, handlers.GetManifest).Methods(http.MethodGet)
 	router.HandleFunc(RouteNameBlob, handlers.GetBlobs).Methods(http.MethodGet)
 
 	return router

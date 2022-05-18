@@ -21,7 +21,8 @@ func Router() *mux.Router {
 
 	router.HandleFunc(RouteNameManifest, handlers.GetManifest).Methods(http.MethodHead)
 	router.HandleFunc(RouteNameManifest, handlers.GetManifest).Methods(http.MethodGet)
-	router.HandleFunc(RouteNameBlob, handlers.GetBlobs).Methods(http.MethodGet)
+	router.HandleFunc(RouteNameBlob, handlers.ServeBlob).Methods(http.MethodGet)
+	router.HandleFunc(RouteNameBlob, handlers.ServeBlob).Methods(http.MethodHead)
 
 	return router
 }

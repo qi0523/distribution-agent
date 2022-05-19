@@ -13,7 +13,7 @@ type StorageDriverFactory interface {
 }
 
 func Register(name string, factory StorageDriverFactory) {
-	if factory != nil {
+	if factory == nil {
 		panic("Must not provide nil StorageDriverFactory")
 	}
 	_, registered := driverFactories[name]

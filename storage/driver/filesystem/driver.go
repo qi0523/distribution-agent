@@ -13,9 +13,9 @@ import (
 
 const (
 	driverName        = "filesystem"
-	defaultRootDir    = ""
-	defaultMaxThreads = uint64(10)
-	minThreads        = uint64(5)
+	defaultRootDir    = "/var/lib/containerd/io.containerd.content.v1.content/blobs/sha256"
+	defaultMaxThreads = uint64(30)
+	minThreads        = uint64(10)
 )
 
 type DriverParameters struct {

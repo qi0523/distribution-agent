@@ -15,6 +15,7 @@ import (
 	_ "crypto/sha256"
 
 	digest "github.com/opencontainers/go-digest"
+	"github.com/qi0523/distribution-agent/constant"
 	"github.com/qi0523/distribution-agent/storage/driver"
 	"github.com/qi0523/distribution-agent/storage/driver/factory"
 	_ "github.com/qi0523/distribution-agent/storage/driver/filesystem"
@@ -35,7 +36,6 @@ const (
 	MediaTypeDockerSchema2Config           = "application/vnd.docker.container.image.v1+json"
 	MediaTypeContainerd1Checkpoint         = "application/vnd.containerd.container.criu.checkpoint.criu.tar"
 	MediaTypeContainerd1CheckpointConfig   = "application/vnd.containerd.container.checkpoint.config.v1+proto"
-	defaultRootDir                         = "/mydata/var/lib/containerd/io.containerd.content.v1.content"
 )
 
 type blobServer struct {
@@ -79,7 +79,7 @@ func (bs *blobServer) ServeBlob(w http.ResponseWriter, r *http.Request, dgst dig
 		var totalS string
 		path = ingestPath(mediaType, dgst.String())
 		for {
-			totalS, err = readFileString(filepath.Join(defaultRootDir, path, "total"))
+			totalS, err = readFileString(filepath.Join(constant.ContainerdRoot, path, "total"))
 			if err != nil {
 				if retry < 512 {
 					time.Sleep(time.Microsecond * time.Duration(rand.Intn(retry)))

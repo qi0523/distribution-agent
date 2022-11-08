@@ -5,16 +5,14 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/opencontainers/go-digest"
 	"github.com/qi0523/distribution-agent/client"
+	"github.com/qi0523/distribution-agent/constant"
 	"github.com/sirupsen/logrus"
-)
-
-const (
-	fileDir = "/mydata/var/lib/containerd/io.containerd.content.v1.content/blobs/sha256/"
 )
 
 func ResolvedManifest(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +35,7 @@ func ResolvedManifest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		fi, err := os.Stat(fileDir + dgst.String()[7:])
+		fi, err := os.Stat(filepath.Join(constant.ContainerdRoot, "blob/sha256", dgst.String()[7:]))
 		if err != nil {
 			return
 		}
@@ -64,7 +62,7 @@ func GetManifest(w http.ResponseWriter, r *http.Request) {
 	)
 
 	for {
-		p, err = os.ReadFile(fileDir + ref[7:])
+		p, err = os.ReadFile(filepath.Join(constant.ContainerdRoot, "blob/sha256", ref[7:]))
 		if err != nil {
 			if retry < 512 {
 				time.Sleep(time.Microsecond * time.Duration(rand.Intn(retry)))

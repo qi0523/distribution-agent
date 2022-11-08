@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/qi0523/distribution-agent/constant"
 	storagedriver "github.com/qi0523/distribution-agent/storage/driver"
 	"github.com/qi0523/distribution-agent/storage/driver/base"
 	"github.com/qi0523/distribution-agent/storage/driver/factory"
@@ -13,7 +14,6 @@ import (
 
 const (
 	driverName        = "filesystem"
-	defaultRootDir    = "/mydata/var/lib/containerd/io.containerd.content.v1.content"
 	defaultMaxThreads = uint64(30)
 	minThreads        = uint64(10)
 )
@@ -57,7 +57,7 @@ func FromParametersImpl(parameters map[string]interface{}) (*DriverParameters, e
 	var (
 		err        error
 		maxThreads = defaultMaxThreads
-		rootDir    = defaultRootDir
+		rootDir    = constant.ContainerdRoot
 	)
 	if parameters != nil {
 		if rootDirectory, ok := parameters["rootdirectory"]; ok {

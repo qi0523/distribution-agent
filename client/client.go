@@ -6,19 +6,15 @@ import (
 
 	"github.com/containerd/containerd"
 	"github.com/opencontainers/go-digest"
+	"github.com/qi0523/distribution-agent/constant"
 	"github.com/sirupsen/logrus"
-)
-
-const (
-	containerdPath      = "/run/containerd/containerd.sock"
-	containerdNameSpace = "default"
 )
 
 var client *containerd.Client
 
 func init() {
 	var err error
-	client, err = containerd.New(containerdPath, containerd.WithDefaultNamespace(containerdNameSpace))
+	client, err = containerd.New(constant.ContainerdSockPath, containerd.WithDefaultNamespace(constant.ContainerdNameSpace))
 	if err != nil {
 		logrus.Fatal("failed to create containerd client.")
 	}

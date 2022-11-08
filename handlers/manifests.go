@@ -56,20 +56,14 @@ func GetManifest(w http.ResponseWriter, r *http.Request) {
 	logrus.Info("GetManifest: ", name+":"+ref)
 	mediaType := r.Header["Accept"][0]
 	var (
-		p     []byte
-		err   error
-		retry = 16
+		p   []byte
+		err error
 	)
 
-	for {
-		p, err = os.ReadFile(filepath.Join(constant.ContainerdRoot, "blob/sha256", ref[7:]))
+	for retry := 16; retry < 512; retry = retry << 1 {
+		p, err = os.ReadFile(filepath.Join(constant.ContainerdRoot, "blobs/sha256", ref[7:]))
 		if err != nil {
-			if retry < 512 {
-				time.Sleep(time.Microsecond * time.Duration(rand.Intn(retry)))
-				retry = retry << 1
-			} else {
-				return
-			}
+			time.Sleep(time.Microsecond * time.Duration(rand.Intn(retry)))
 		} else {
 			break
 		}

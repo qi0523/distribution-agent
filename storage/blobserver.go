@@ -64,8 +64,7 @@ func (bs *blobServer) ServeBlob(w http.ResponseWriter, r *http.Request, dgst dig
 		size      int64
 		br        *fileReader
 		path      string
-		mediaType = r.Header["Accept"][0]
-		retry     = 16
+		mediaType = strings.Split(r.Header["Accept"][0], ",")[0]
 	)
 	path = blobPath(dgst.String())
 	size, err = bs.driver.Stat(path)
@@ -78,15 +77,10 @@ func (bs *blobServer) ServeBlob(w http.ResponseWriter, r *http.Request, dgst dig
 	} else {
 		var totalS string
 		path = ingestPath(mediaType, dgst.String())
-		for {
+		for retry := 16; retry < 512; retry = retry << 1 {
 			totalS, err = readFileString(filepath.Join(constant.ContainerdRoot, path, "total"))
 			if err != nil {
-				if retry < 512 {
-					time.Sleep(time.Microsecond * time.Duration(rand.Intn(retry)))
-					retry = retry << 1
-				} else {
-					return err
-				}
+				time.Sleep(time.Microsecond * time.Duration(rand.Intn(retry)))
 			} else {
 				break
 			}

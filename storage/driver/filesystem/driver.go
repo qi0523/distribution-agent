@@ -13,7 +13,7 @@ import (
 
 const (
 	driverName        = "filesystem"
-	defaultRootDir    = "/var/lib/containerd/io.containerd.content.v1.content/blobs/sha256"
+	defaultRootDir    = "/mydata/var/lib/containerd/io.containerd.content.v1.content"
 	defaultMaxThreads = uint64(30)
 	minThreads        = uint64(10)
 )

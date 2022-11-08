@@ -49,3 +49,11 @@ func GetManifestInfoByDigest(dgst digest.Digest) (string, error) {
 	}
 	return "", nil
 }
+
+func GetManifestInfoByTmpImage(name, tag string) (string, digest.Digest, int64, error) {
+	tmpimage, err := client.GetTmpImage(context.Background(), name+":"+tag)
+	if err != nil {
+		return "", "", 0, err
+	}
+	return tmpimage.Target.MediaType, tmpimage.Target.Digest, tmpimage.Target.Size, nil
+}

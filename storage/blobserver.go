@@ -2,7 +2,6 @@ package storage
 
 import (
 	"fmt"
-	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -66,34 +65,36 @@ func (bs *blobServer) ServeBlob(w http.ResponseWriter, r *http.Request, dgst dig
 		path      string
 		mediaType = strings.Split(r.Header["Accept"][0], ",")[0]
 	)
-	path = blobPath(dgst.String())
-	size, err = bs.driver.Stat(path)
-	if err == nil {
-		br, err = newFileReader(bs.driver, path, size)
-		defer br.Close()
-		if err != nil {
-			return err
+
+	for retry := 32; retry < 512; retry = retry << 1 {
+		if retry != 32 {
+			time.Sleep(time.Microsecond * time.Duration(retry))
 		}
-	} else {
-		var totalS string
-		path = ingestPath(mediaType, dgst.String())
-		for retry := 16; retry < 512; retry = retry << 1 {
+		path = blobPath(dgst.String())
+		size, err = bs.driver.Stat(path)
+		if err == nil {
+			br, err = newFileReader(bs.driver, path, size)
+			if err != nil {
+				continue
+			}
+			break
+		} else {
+			var totalS string
+			path = ingestPath(mediaType, dgst.String())
 			totalS, err = readFileString(filepath.Join(constant.ContainerdRoot, path, "total"))
 			if err != nil {
-				time.Sleep(time.Microsecond * time.Duration(rand.Intn(retry)))
-			} else {
-				break
+				continue
 			}
-		}
-		if size, err = strconv.ParseInt(totalS, 10, 64); err != nil {
-			return err
-		}
-		br, err = newFileReader(bs.driver, filepath.Join(path, "data"), size)
-		defer br.Close()
-		if err != nil {
-			return err
+			if size, err = strconv.ParseInt(totalS, 10, 64); err != nil {
+				continue
+			}
+			if br, err = newFileReader(bs.driver, filepath.Join(path, "data"), size); err != nil {
+				continue
+			}
+			break
 		}
 	}
+	defer br.Close()
 	w.Header().Set("ETag", fmt.Sprintf(`"%s`, dgst))
 	w.Header().Set("Cache-Control", fmt.Sprintf("max-age=%.f", blobCacheControlMaxAge.Seconds()))
 	if w.Header().Get("Docker-Content-Digest") == "" {

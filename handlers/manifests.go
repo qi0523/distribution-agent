@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"fmt"
-	"math/rand"
+	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -20,33 +20,44 @@ func ResolvedManifest(w http.ResponseWriter, r *http.Request) {
 	name := vars["name"]
 	ref := vars["reference"]
 	logrus.Info("ResolvedManifest: ", name+":"+ref)
-	dgst, err := digest.Parse(ref)
 	var (
 		mediaType string
 		size      int64
+		dgst      digest.Digest
+		fi        fs.FileInfo
+		err       error
 	)
-	if err != nil { //tag
-		mediaType, dgst, err = client.GetManifestInfoByTag(name, ref)
-	} else {
-		mediaType, err = client.GetManifestInfoByDigest(dgst)
-	}
-	if err != nil || mediaType == "" {
-		if mediaType, dgst, size, err = client.GetManifestInfoByTmpImage(name, ref); err != nil {
-			return
+	ch := make(chan bool, 1)
+	go func() {
+		for {
+			if mediaType, dgst, size, err = client.GetManifestInfoByTmpImage(name, ref); err == nil {
+				ch <- true
+				break
+			} else {
+				if mediaType, dgst, err = client.GetManifestInfoByTag(name, ref); mediaType != "" {
+					if fi, err = os.Stat(filepath.Join(constant.ContainerdRoot, "blobs/sha256", dgst.String()[7:])); err == nil {
+						size = fi.Size()
+						ch <- true
+						break
+					}
+				}
+			}
+			time.Sleep(time.Millisecond * time.Duration(constant.Interval))
 		}
-	} else {
-		fi, err := os.Stat(filepath.Join(constant.ContainerdRoot, "blob/sha256", dgst.String()[7:]))
-		if err != nil {
-			return
-		}
-		size = fi.Size()
+	}()
+
+	select {
+	case _ = <-ch:
+		logrus.Info("ResponseWriter@Content-length: ", size)
+		w.Header().Add("Docker-Distribution-API-Version", "registry/2.0")
+		w.Header().Set("Content-Type", mediaType)
+		w.Header().Set("Content-Length", fmt.Sprint(size))
+		w.Header().Set("Docker-Content-Digest", dgst.String())
+		w.Header().Set("Etag", fmt.Sprintf(`"%s"`, dgst))
+	case <-time.After(constant.ResolvedTimeout * time.Second):
+		w.WriteHeader(http.StatusNotFound)
+		return
 	}
-	logrus.Info("ResponseWriter@Content-length: ", size)
-	w.Header().Add("Docker-Distribution-API-Version", "registry/2.0")
-	w.Header().Set("Content-Type", mediaType)
-	w.Header().Set("Content-Length", fmt.Sprint(size))
-	w.Header().Set("Docker-Content-Digest", dgst.String())
-	w.Header().Set("Etag", fmt.Sprintf(`"%s"`, dgst))
 }
 
 func GetManifest(w http.ResponseWriter, r *http.Request) {
@@ -60,19 +71,28 @@ func GetManifest(w http.ResponseWriter, r *http.Request) {
 		err error
 	)
 
-	for retry := 16; retry < 512; retry = retry << 1 {
-		p, err = os.ReadFile(filepath.Join(constant.ContainerdRoot, "blobs/sha256", ref[7:]))
-		if err != nil {
-			time.Sleep(time.Microsecond * time.Duration(rand.Intn(retry)))
-		} else {
-			break
+	ch := make(chan bool, 1)
+	go func() {
+		for {
+			if p, err = os.ReadFile(filepath.Join(constant.ContainerdRoot, "blobs/sha256", ref[7:])); err == nil {
+				ch <- true
+				break
+			}
+			time.Sleep(time.Millisecond * time.Duration(constant.Interval))
 		}
+	}()
+
+	select {
+	case _ = <-ch:
+		logrus.Info("ResponseWriter@Content-length: ", len(p))
+		w.Header().Add("Docker-Distribution-API-Version", "registry/2.0")
+		w.Header().Set("Content-Type", mediaType)
+		w.Header().Set("Content-Length", fmt.Sprint(len(p)))
+		w.Header().Set("Docker-Content-Digest", ref)
+		w.Header().Set("Etag", fmt.Sprintf(`"%s"`, ref))
+		w.Write(p)
+	case <-time.After(constant.ResolvedTimeout * time.Second):
+		w.WriteHeader(http.StatusNotFound)
+		return
 	}
-	logrus.Info("ResponseWriter@Content-length: ", len(p))
-	w.Header().Add("Docker-Distribution-API-Version", "registry/2.0")
-	w.Header().Set("Content-Type", mediaType)
-	w.Header().Set("Content-Length", fmt.Sprint(len(p)))
-	w.Header().Set("Docker-Content-Digest", ref)
-	w.Header().Set("Etag", fmt.Sprintf(`"%s"`, ref))
-	w.Write(p)
 }

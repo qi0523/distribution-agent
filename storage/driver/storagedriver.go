@@ -8,7 +8,7 @@ import (
 type StorageDriver interface {
 	Name() string
 
-	Reader(path string, offset int64) (io.ReadCloser, error)
+	Reader(path string, mediaType string, offset int64) (io.ReadCloser, error)
 
 	Stat(path string) (int64, error)
 }

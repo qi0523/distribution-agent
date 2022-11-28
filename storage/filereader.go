@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"time"
 
 	storagedriver "github.com/qi0523/distribution-agent/storage/driver"
 )
@@ -15,20 +16,22 @@ const (
 )
 
 type fileReader struct {
-	driver storagedriver.StorageDriver
-	path   string
-	size   int64
-	rc     io.ReadCloser
-	brd    *bufio.Reader
-	offset int64
-	err    error
+	driver    storagedriver.StorageDriver
+	dgst      string
+	mediaType string
+	size      int64
+	rc        io.ReadCloser
+	brd       *bufio.Reader
+	offset    int64
+	err       error
 }
 
-func newFileReader(driver storagedriver.StorageDriver, path string, size int64) (*fileReader, error) {
+func newFileReader(driver storagedriver.StorageDriver, dgst string, mediaType string, size int64) (*fileReader, error) {
 	return &fileReader{
-		driver: driver,
-		path:   path,
-		size:   size,
+		driver:    driver,
+		dgst:      dgst,
+		mediaType: mediaType,
+		size:      size,
 	}, nil
 }
 
@@ -42,8 +45,11 @@ func (fr *fileReader) Read(p []byte) (n int, err error) {
 	}
 	n, err = rd.Read(p)
 	fr.offset += int64(n)
-	if err == nil && fr.offset >= fr.size {
-		err = io.EOF
+	if err == io.EOF && fr.offset < fr.size {
+		err = nil
+	}
+	if n == 0 && fr.offset < fr.size {
+		time.Sleep(time.Nanosecond * time.Duration(int64(1000000000*(fr.size-fr.offset)/fr.size)))
 	}
 	return n, err
 }
@@ -85,7 +91,7 @@ func (fr *fileReader) reader() (io.Reader, error) {
 		return fr.brd, nil
 	}
 
-	rc, err := fr.driver.Reader(fr.path, fr.offset)
+	rc, err := fr.driver.Reader(fr.dgst, fr.mediaType, fr.offset)
 	if err != nil {
 		switch err := err.(type) {
 		case storagedriver.PathNotFoundError:

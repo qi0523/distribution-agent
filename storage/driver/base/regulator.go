@@ -76,10 +76,10 @@ func (r *regulator) Name() string {
 	return r.StorageDriver.Name()
 }
 
-func (r *regulator) Reader(path string, offset int64) (io.ReadCloser, error) {
+func (r *regulator) Reader(dgst string, mediaType string, offset int64) (io.ReadCloser, error) {
 	r.enter()
 	defer r.exit()
-	return r.StorageDriver.Reader(path, offset)
+	return r.StorageDriver.Reader(dgst, mediaType, offset)
 }
 
 func (r *regulator) Stat(path string) (int64, error) {

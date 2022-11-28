@@ -5,11 +5,13 @@ import (
 	"io"
 	"os"
 	"path"
+	"path/filepath"
 
 	"github.com/qi0523/distribution-agent/constant"
 	storagedriver "github.com/qi0523/distribution-agent/storage/driver"
 	"github.com/qi0523/distribution-agent/storage/driver/base"
 	"github.com/qi0523/distribution-agent/storage/driver/factory"
+	"github.com/qi0523/distribution-agent/storage/help"
 )
 
 const (
@@ -91,13 +93,13 @@ func (d *driver) Name() string {
 	return driverName
 }
 
-func (d *driver) Reader(path string, offset int64) (io.ReadCloser, error) {
-	file, err := os.Open(d.fullPath(path))
+func (d *driver) Reader(dgst string, mediaType string, offset int64) (io.ReadCloser, error) {
+	file, err := os.Open(d.fullPath(subPath(dgst, mediaType)))
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, storagedriver.PathNotFoundError{Path: path}
+		file, err = os.Open(d.fullPath(help.BlobPath(dgst)))
+		if err != nil {
+			return nil, err
 		}
-		return nil, err
 	}
 	seekPos, err := file.Seek(offset, io.SeekStart)
 	if err != nil {
@@ -105,15 +107,13 @@ func (d *driver) Reader(path string, offset int64) (io.ReadCloser, error) {
 		return nil, err
 	} else if seekPos < offset {
 		file.Close()
-		return nil, storagedriver.InvalidOffsetError{Path: path, Offset: offset}
+		return nil, storagedriver.InvalidOffsetError{Path: dgst, Offset: offset}
 	}
 	return file, nil
 }
 
 func (d *driver) Stat(subPath string) (int64, error) {
-	fullPath := d.fullPath(subPath)
-
-	fi, err := os.Stat(fullPath)
+	fi, err := os.Stat(d.fullPath(subPath))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return 0, storagedriver.PathNotFoundError{Path: subPath}
@@ -121,6 +121,10 @@ func (d *driver) Stat(subPath string) (int64, error) {
 		return 0, err
 	}
 	return fi.Size(), nil
+}
+
+func subPath(dgst string, mediaType string) string {
+	return filepath.Join(help.IngestPath(mediaType, dgst), "data")
 }
 
 func (d *driver) fullPath(subPath string) string {

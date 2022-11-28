@@ -31,11 +31,11 @@ func (base *Base) setDriverName(e error) error {
 	}
 }
 
-func (base *Base) Reader(path string, offset int64) (io.ReadCloser, error) {
+func (base *Base) Reader(dgst string, mediaType string, offset int64) (io.ReadCloser, error) {
 	if offset < 0 {
-		return nil, driver.InvalidOffsetError{Path: path, Offset: offset, DriverName: base.StorageDriver.Name()}
+		return nil, driver.InvalidOffsetError{Path: dgst, Offset: offset, DriverName: base.StorageDriver.Name()}
 	}
-	rc, e := base.StorageDriver.Reader(path, offset)
+	rc, e := base.StorageDriver.Reader(dgst, mediaType, offset)
 	return rc, base.setDriverName(e)
 }
 

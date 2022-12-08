@@ -50,4 +50,4 @@ require (
 )
 
 // containerd main
-replace github.com/containerd/containerd => github.com/qi0523/containerd v1.0.2
+replace github.com/containerd/containerd => github.com/qi0523/containerd v1.6.9
